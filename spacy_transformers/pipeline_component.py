@@ -191,6 +191,22 @@ class Transformer(TrainablePipe):
         self.set_annotations([doc], outputs)
         return doc
 
+    def distill(
+        self,
+        teacher_pipe: "TrainablePipe",
+        teacher_examples: Iterable["Example"],
+        student_examples: Iterable["Example"],
+        *,
+        drop: float = 0.0,
+        sgd: Optimizer = None,
+        losses: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, float]:
+        # Update tok2vec using regular backprop in distillation.
+        # XXX - in the future we could support MSE loss of transformer layers.
+        docs = [eg.predicted for eg in teacher_examples]
+        teacher_pipe.set_annotations(docs, teacher_pipe.predict(docs))
+        return self.update(student_examples, drop=drop, sgd=sgd, losses=losses)
+
     def pipe(self, stream: Iterable[Doc], *, batch_size: int = 128) -> Iterator[Doc]:
         """Apply the pipe to a stream of documents. This usually happens under
         the hood when the nlp object is called on a text and all components are
